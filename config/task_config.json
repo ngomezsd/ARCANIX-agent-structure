@@ -1,0 +1,34 @@
+{
+  "tasks": [
+    {
+      "name": "market_data_refresh",
+      "agent": "market_monitor",
+      "interval_seconds": 300,
+      "enabled": true
+    },
+    {
+      "name": "risk_check",
+      "agent": "risk_manager",
+      "interval_seconds": 60,
+      "enabled": true
+    },
+    {
+      "name": "portfolio_optimization",
+      "agent": "portfolio_optimizer",
+      "interval_seconds": 600,
+      "enabled": true
+    },
+    {
+      "name": "opportunity_scan",
+      "agent": "opportunity_scout",
+      "interval_seconds": 300,
+      "enabled": true
+    },
+    {
+      "name": "report_generation",
+      "agent": "reporter",
+      "interval_seconds": 900,
+      "enabled": true
+    }
+  ]
+}

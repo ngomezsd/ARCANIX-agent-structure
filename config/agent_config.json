@@ -1,0 +1,25 @@
+{
+  "market_monitor": {
+    "symbols": ["AAPL", "MSFT", "GOOGL", "TSLA", "AMZN"],
+    "interval_seconds": 300,
+    "enabled": true
+  },
+  "risk_manager": {
+    "risk_threshold": 7,
+    "interval_seconds": 60,
+    "enabled": true
+  },
+  "portfolio_optimizer": {
+    "interval_seconds": 600,
+    "enabled": true
+  },
+  "opportunity_scout": {
+    "rsi_oversold_threshold": 35,
+    "interval_seconds": 300,
+    "enabled": true
+  },
+  "reporter": {
+    "interval_seconds": 900,
+    "enabled": true
+  }
+}
