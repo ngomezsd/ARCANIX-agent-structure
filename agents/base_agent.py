@@ -45,6 +45,7 @@ class BaseAgent(ABC):
 
         self._event_bus = event_bus
         self._running: bool = False
+        self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
 
@@ -74,6 +75,7 @@ class BaseAgent(ABC):
             logger.warning("Agent '%s' is already running.", self.agent_name)
             return
         self._running = True
+        self._stop_event.clear()
         self.status = "running"
         self._thread = threading.Thread(
             target=self._loop,
@@ -88,9 +90,10 @@ class BaseAgent(ABC):
         if not self._running:
             return
         self._running = False
+        self._stop_event.set()
         self.status = "stopped"
         if self._thread:
-            self._thread.join(timeout=self.interval + 5)
+            self._thread.join(timeout=10)
         self.log_info(f"Agent '{self.agent_name}' stopped.")
 
     # ------------------------------------------------------------------
@@ -162,8 +165,6 @@ class BaseAgent(ABC):
 
     def _loop(self) -> None:
         """Internal thread loop — calls :meth:`run_cycle` then sleeps."""
-        import time
-
         while self._running:
             try:
                 self.run_cycle()
@@ -171,5 +172,5 @@ class BaseAgent(ABC):
                 self.status = "error"
                 self.log_error(f"Unhandled exception in run_cycle: {exc}")
             finally:
-                if self._running:
-                    time.sleep(self.interval)
+                # Use an event-based wait so stop() can interrupt the sleep immediately
+                self._stop_event.wait(timeout=self.interval)

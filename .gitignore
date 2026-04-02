@@ -31,3 +31,7 @@ ENV/
 
 # macOS
 .DS_Store
+
+# Database files
+storage/*.db
+*.db
