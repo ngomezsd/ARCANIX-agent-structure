@@ -1,5 +1,6 @@
 """Portfolio Manager Agent — makes allocation and rebalancing recommendations."""
 
+import json
 import logging
 from typing import Any, Dict
 
