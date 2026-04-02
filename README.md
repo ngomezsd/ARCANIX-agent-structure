@@ -58,6 +58,7 @@ ARCANIX-agent-structure/
 │   └── reporting.py            # Generates investment reports
 └── utils/
     ├── __init__.py
+    ├── agent_utils.py          # Shared helpers (JSON parsing, etc.)
     ├── data_fetcher.py         # Fetches market data & computes technicals
     └── portfolio_calculator.py # Computes portfolio-level metrics
 ```
