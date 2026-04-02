@@ -5,6 +5,11 @@
 investment_report.md
 investment_report.txt
 
+# Generated data reports (portfolio.json and watchlist.json are generated at
+# runtime and may contain personal data; keep them out of source control)
+data/*.json
+data/*.md
+
 # Python
 __pycache__/
 *.py[cod]
