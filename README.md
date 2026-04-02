@@ -162,6 +162,151 @@ The full report is saved to **`investment_report.md`**.
 
 ---
 
+## Multi-Agent System & REST API
+
+The repository now ships a second, **OpenAI-free** autonomous agent layer built
+on top of an event-driven architecture.  Agents run as background threads,
+communicate through an in-process event bus, and expose a full REST API.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        REST API (Flask)                          │
+│  POST /api/agents/start   GET /api/agents/status                 │
+│  POST /api/analysis/run   GET /api/analysis/results              │
+│  GET  /api/portfolio/metrics  POST /api/portfolio/update         │
+│  GET  /api/events         GET  /api/health                       │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │ AgentCoordinator
+         ┌─────────────┼──────────────────────────┐
+         ▼             ▼              ▼            ▼
+  ┌─────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+  │MarketMonitor│ │   Risk   │ │Portfolio │ │Opportunity│
+  │  Agent      │ │ Manager  │ │Optimizer │ │  Scout   │
+  └──────┬──────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘
+         │             │            │              │
+         └─────────────▼────────────▼──────────────┘
+                    EventBus (pub/sub)
+                         │
+                    ┌────▼────┐
+                    │Reporter │
+                    │ Agent   │
+                    └─────────┘
+                         │
+               ┌─────────▼──────────┐
+               │  SQLite Storage     │
+               │ (portfolio, results,│
+               │  agent_logs, events)│
+               └────────────────────┘
+```
+
+### New Directory Structure
+
+```
+├── agents/
+│   ├── base_agent.py          # Abstract base class
+│   ├── market_monitor.py      # Fetches live market data
+│   ├── risk_manager.py        # Rule-based risk assessment
+│   ├── portfolio_optimizer.py # Rule-based allocation advice
+│   ├── opportunity_scout.py   # Identifies buying opportunities
+│   └── reporter.py            # Aggregates & reports
+├── core/
+│   ├── event_bus.py           # Pub/sub event bus singleton
+│   ├── message_queue.py       # Underlying thread-safe queue
+│   ├── agent_registry.py      # Runtime agent registry
+│   ├── coordinator.py         # Orchestration & on-demand analysis
+│   └── scheduler.py           # Periodic task scheduler
+├── storage/
+│   ├── database.py            # SQLite wrapper
+│   ├── portfolio_store.py     # Portfolio persistence
+│   └── results_store.py       # Analysis results persistence
+├── api/
+│   ├── app.py                 # Flask application factory
+│   ├── routes.py              # Blueprint with all endpoints
+│   ├── middleware.py          # Request logging, CORS, error handlers
+│   └── models.py              # Response helpers
+├── config/
+│   ├── agent_config.json      # Per-agent settings
+│   ├── api_config.json        # Flask server settings
+│   └── task_config.json       # Scheduler task definitions
+├── run_agents.py              # Start the agent system standalone
+└── run_api.py                 # Start the REST API + agents
+```
+
+### How to Run
+
+#### Run the agent system (no API)
+
+```bash
+python run_agents.py
+```
+
+All five agents start as background threads and process events continuously.
+Press **Ctrl+C** for a graceful shutdown.
+
+#### Run the REST API (includes agents)
+
+```bash
+python run_api.py
+```
+
+The Flask server starts on `http://0.0.0.0:5000` by default.  All agents run
+in background threads alongside the API process.
+
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/agents/start` | Start one or all agents |
+| `POST` | `/api/agents/stop` | Stop one or all agents |
+| `GET`  | `/api/agents/status` | List all agent statuses |
+| `GET`  | `/api/agents/<id>/logs` | Fetch agent log entries |
+| `POST` | `/api/analysis/run` | Run a full analysis cycle |
+| `GET`  | `/api/analysis/results` | Retrieve stored results |
+| `GET`  | `/api/portfolio/metrics` | Current portfolio metrics |
+| `POST` | `/api/portfolio/update` | Update portfolio positions |
+| `GET`  | `/api/events` | Recent event-bus history |
+| `GET`  | `/api/health` | System health check |
+
+### Example API Calls
+
+```bash
+# Health check
+curl http://localhost:5000/api/health
+
+# Check all agent statuses
+curl http://localhost:5000/api/agents/status
+
+# Start a specific agent
+curl -X POST http://localhost:5000/api/agents/start \
+     -H "Content-Type: application/json" \
+     -d '{"agent_name": "market_monitor"}'
+
+# Start all agents
+curl -X POST http://localhost:5000/api/agents/start \
+     -H "Content-Type: application/json" \
+     -d '{}'
+
+# Update the portfolio
+curl -X POST http://localhost:5000/api/portfolio/update \
+     -H "Content-Type: application/json" \
+     -d '{"portfolio": {"AAPL": 10000, "MSFT": 15000, "GOOGL": 12000}}'
+
+# Run a full on-demand analysis
+curl -X POST http://localhost:5000/api/analysis/run \
+     -H "Content-Type: application/json" \
+     -d '{"portfolio": {"AAPL": 10000, "MSFT": 15000}, "symbols": ["AAPL", "MSFT"]}'
+
+# Get latest analysis results
+curl "http://localhost:5000/api/analysis/results"
+
+# Get recent events
+curl "http://localhost:5000/api/events?limit=20"
+```
+
+---
+
 ## Extending the System
 
 ### Add a new agent
