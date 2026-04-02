@@ -1,6 +1,5 @@
 """Risk Analyst Agent — assesses portfolio risk and flags compliance concerns."""
 
-import json
 import logging
 from typing import Any, Dict
 
@@ -8,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
 import config
+from utils.agent_utils import parse_json_response
 
 logger = logging.getLogger("arcanix.risk_analyst")
 
@@ -16,6 +16,15 @@ _SYSTEM_PROMPT = (
     "management. You assess market, concentration, and volatility risks, and "
     "always output structured JSON reports."
 )
+
+_FALLBACK: Dict[str, Any] = {
+    "risk_level": "medium",
+    "risk_score": 5,
+    "concentration_risk": "",
+    "volatility_concerns": [],
+    "mitigation_strategies": [],
+    "compliance_flags": [],
+}
 
 
 class RiskAnalystAgent:
@@ -72,15 +81,4 @@ class RiskAnalystAgent:
             ]
         )
 
-        try:
-            return json.loads(response.content)
-        except json.JSONDecodeError:
-            logger.warning("Risk analyst returned non-JSON response; wrapping it.")
-            return {
-                "risk_level": "medium",
-                "risk_score": 5,
-                "concentration_risk": response.content,
-                "volatility_concerns": [],
-                "mitigation_strategies": [],
-                "compliance_flags": [],
-            }
+        return parse_json_response(response.content, _FALLBACK)

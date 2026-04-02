@@ -1,6 +1,5 @@
 """Portfolio Manager Agent — makes allocation and rebalancing recommendations."""
 
-import json
 import logging
 from typing import Any, Dict
 
@@ -8,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
 import config
+from utils.agent_utils import parse_json_response
 
 logger = logging.getLogger("arcanix.portfolio_manager")
 
@@ -16,6 +16,13 @@ _SYSTEM_PROMPT = (
     "returns. You base every decision on quantitative data and always output "
     "structured JSON recommendations."
 )
+
+_FALLBACK: Dict[str, Any] = {
+    "action": "hold",
+    "allocations": {},
+    "changes": [],
+    "rationale": "",
+}
 
 
 class PortfolioManagerAgent:
@@ -69,8 +76,4 @@ class PortfolioManagerAgent:
             ]
         )
 
-        try:
-            return json.loads(response.content)
-        except json.JSONDecodeError:
-            logger.warning("Portfolio manager returned non-JSON response; wrapping it.")
-            return {"action": "hold", "changes": [], "rationale": response.content, "allocations": {}}
+        return parse_json_response(response.content, _FALLBACK)

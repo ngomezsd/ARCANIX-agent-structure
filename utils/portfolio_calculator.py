@@ -8,6 +8,17 @@ import pandas as pd
 
 logger = logging.getLogger("arcanix.portfolio_calculator")
 
+# Implied annual return assumptions by market trend (simple proxy)
+_RETURN_BY_TREND: Dict[str, float] = {
+    "bullish": 0.10,   # 10 % p.a.
+    "neutral": 0.07,   # 7  % p.a.
+    "bearish": 0.04,   # 4  % p.a.
+}
+_DEFAULT_RETURN: float = _RETURN_BY_TREND["neutral"]
+
+# Fallback annualised volatility when market data is unavailable
+_DEFAULT_VOLATILITY: float = 0.15  # 15 % p.a.
+
 
 def calculate_diversification_score(weights: Dict[str, float]) -> float:
     """Return a diversification score in [0, 10].
@@ -63,24 +74,29 @@ def calculate_portfolio_metrics(
 
     weights = {symbol: value / total_value for symbol, value in portfolio.items()}
 
-    # Per-symbol annualised volatility from market data (fallback 15 %)
+    # Per-symbol annualised volatility from market data (fallback to default)
     symbol_vols = {
-        symbol: market_data.get(symbol, {}).get("volatility", 0.15)
+        symbol: market_data.get(symbol, {}).get("volatility", _DEFAULT_VOLATILITY)
         for symbol in portfolio
     }
 
-    # Simplified expected return: use recent trend as a proxy
-    # bullish  → assume 10 % p.a., bearish → assume 4 % p.a.
-    symbol_returns = {}
-    for symbol in portfolio:
-        trend = market_data.get(symbol, {}).get("trend", "neutral")
-        symbol_returns[symbol] = 0.10 if trend == "bullish" else 0.04
+    # Simplified expected return: use recent trend as a proxy.
+    # See _RETURN_BY_TREND for the assumed return per trend category.
+    symbol_returns = {
+        symbol: _RETURN_BY_TREND.get(
+            market_data.get(symbol, {}).get("trend", "neutral"), _DEFAULT_RETURN
+        )
+        for symbol in portfolio
+    }
 
     expected_return = sum(
         weights[s] * symbol_returns[s] for s in portfolio
     )
 
-    # Portfolio volatility (assuming zero correlation between assets)
+    # Portfolio volatility.
+    # NOTE: This assumes zero correlation between assets, which tends to
+    # underestimate true portfolio volatility. It serves as a conservative
+    # lower-bound estimate suitable for initial screening.
     volatility = float(
         np.sqrt(sum((weights[s] * symbol_vols[s]) ** 2 for s in portfolio))
     )

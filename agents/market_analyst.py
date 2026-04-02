@@ -1,6 +1,5 @@
 """Market Analyst Agent — analyses market data and provides stock insights."""
 
-import json
 import logging
 from typing import Any, Dict
 
@@ -8,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
 import config
+from utils.agent_utils import parse_json_response
 
 logger = logging.getLogger("arcanix.market_analyst")
 
@@ -16,6 +16,12 @@ _SYSTEM_PROMPT = (
     "analysis, macroeconomics, and equity markets. You provide concise, data-driven "
     "analysis and always structure your response as valid JSON."
 )
+
+_FALLBACK: Dict[str, Any] = {
+    "overall_sentiment": "neutral",
+    "stocks": {},
+    "summary": "",
+}
 
 
 class MarketAnalystAgent:
@@ -62,8 +68,4 @@ class MarketAnalystAgent:
             ]
         )
 
-        try:
-            return json.loads(response.content)
-        except json.JSONDecodeError:
-            logger.warning("Market analyst returned non-JSON response; wrapping it.")
-            return {"summary": response.content, "stocks": {}, "overall_sentiment": "neutral"}
+        return parse_json_response(response.content, _FALLBACK)
