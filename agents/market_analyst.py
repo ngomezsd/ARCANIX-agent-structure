@@ -1,5 +1,6 @@
 """Market Analyst Agent — analyses market data and provides stock insights."""
 
+import json
 import logging
 from typing import Any, Dict
 

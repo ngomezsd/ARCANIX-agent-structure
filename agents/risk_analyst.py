@@ -1,5 +1,6 @@
 """Risk Analyst Agent — assesses portfolio risk and flags compliance concerns."""
 
+import json
 import logging
 from typing import Any, Dict
 
